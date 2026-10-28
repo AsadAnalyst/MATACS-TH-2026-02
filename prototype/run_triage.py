@@ -1,8 +1,5 @@
-"""Offline proposal triage demonstration for the five fictional assessment samples.
+"Offline proposal triage demonstration for the five fictional assessment samples."
 
-Run from the repository root with: python prototype/run_triage.py
-No network, API key, model, or third-party package is required.
-"""
 import json
 import re
 
@@ -19,7 +16,7 @@ def first(pattern, text, cast=str):
     return cast(next(group for group in match.groups() if group).replace(",", "")) if match else None
 
 def extract(pid, text):
-    """Transparent regex stand-in for the prompt-based extraction step."""
+    "Transparent regex stand-in for the prompt-based extraction step."
     licence_match = re.search(r"(?:Ontario electrical contractor licence\s*\(ECRA/ESA\s*#?([^\)]+)\)|licensed electrical subcontractor)", text, re.I)
     licence = (f"Ontario electrical contractor licence ECRA/ESA #{licence_match.group(1)}"
                if licence_match and licence_match.group(1) else
