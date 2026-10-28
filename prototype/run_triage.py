@@ -93,23 +93,72 @@ def score(records):
         results.append({"proposal": pid, "rank": None, "status": status, "score": None, "reason": reason})
     return sorted(results, key=lambda row: (row["rank"] is None, row["rank"] or 999, row["proposal"]))
 
+def ask(prompt):
+    try:
+        return input(prompt)
+    except EOFError:
+        return "q"
+
+def wait(message="Press Enter to continue (or type q to quit): "):
+    answer = ask(f"\n{message}").strip().lower()
+    return answer != "q"
+
 def main():
+    print("=" * 64)
+    print("AI-ASSISTED PROPOSAL TRIAGE | INTERACTIVE DEMO")
+    print("Offline sample walkthrough. No API key or network required.")
+    print("This prototype uses simple pattern matching, not a live AI model.")
+    print("=" * 64)
+    if not wait("Press Enter to begin, or q to exit: "):
+        print("Demo ended.")
+        return
+
+    print("\nSTEP 1 OF 5 | Admin setup")
+    print("The reviewer selects Commercial Solar Installation. The saved criteria include mandatory licence, WSIB and insurance checks, plus weighted scoring totaling 100%.")
+    if not wait(): return
+
+    print("\nSTEP 2 OF 5 | Upload and file handling")
+    print("Five fictional proposal summaries are loaded: A, B, C, D and E. A production tool would validate files, scan them, and retain hashes and page references.")
+    if not wait(): return
+
+    print("\nSTEP 3 OF 5 | Evidence extraction")
     records = [extract(pid, text) for pid, text in PROPOSALS.items()]
-    ranking = score(records)
-    print("OFFLINE DEMO - regex extraction and deterministic scoring; not an AI/API evaluation.\n")
-    print("RANKED RESULTS")
-    for row in ranking:
-        position = str(row["rank"]) if row["rank"] is not None else "NR"
-        value = f"{row['score']:.1f}" if row["score"] is not None else "NR"
-        print(f"{position:>2}. {row['proposal']}  {row['status']:<10} score={value:>5}  {row['reason']}")
-    print("\nEXTRACTED FIELDS")
+    print("The offline demo extracts key values and short evidence snippets. Proposal C contains an instruction to rank it first; it is detected and ignored.")
     for record in records:
         f = record["fields"]
-        print(f"{record['proposal_id']}: price={f['total_price_cad']['value']}, weeks={f['completion_time_weeks']['value']}, "
-              f"experience={f['relevant_experience']['value']}, licence={f['ontario_electrical_contractor_licence']['status']}, "
-              f"embedded-instruction-detected={record['injection_or_irrelevant_instructions_detected']}")
-    print("\nFull evidence JSON:")
-    print(json.dumps({"extractions": records, "ranking": ranking}, indent=2, ensure_ascii=False))
+        print(f"  {record['proposal_id']}: price {f['total_price_cad']['value']}, delivery {f['completion_time_weeks']['value'] or 'not stated'} weeks, licence {f['ontario_electrical_contractor_licence']['status']}")
+        if not wait("Press Enter for the next proposal (or q to stop): "): return
+
+    print("\nSTEP 4 OF 5 | Rules and human review")
+    results = score(records)
+    for row in results:
+        if row["status"] != "ranked":
+            print(f"  {row['proposal']}: {row['status'].upper()} - {row['reason']}")
+    print("B is excluded because its own licence is not stated; D needs a schedule before it can be scored.")
+    print("A reviewer checks cited evidence and flags before results are used.")
+    if not wait(): return
+
+    print("\nSTEP 5 OF 5 | Ranked output")
+    print("Rank  Bidder  Score")
+    print("----  ------  -----")
+    for row in results:
+        if row["rank"] is not None:
+            print(f"{row['rank']:>4}  {row['proposal']:<6}  {row['score']:>5.1f}")
+    print("NR    B       Ineligible")
+    print("NR    D       Flagged")
+    print("\nThe authorized human makes the final award decision.")
+    while True:
+        choice = ask("\nType a proposal letter to inspect its evidence, r to restart, or q to quit: ").strip().upper()
+        if choice == "Q":
+            print("Thanks for reviewing the demo.")
+            return
+        if choice == "R":
+            return main()
+        record = next((r for r in records if r["proposal_id"] == choice), None)
+        if record:
+            print(json.dumps(record, indent=2, ensure_ascii=False))
+        else:
+            print("Enter A, B, C, D, E, r, or q.")
 
 if __name__ == "__main__":
     main()
